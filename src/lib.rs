@@ -48,11 +48,11 @@ fn subscribeget(ctx: &Context, args: Vec<String>) -> RedisResult {
 }
 
 redis_module! {
-    name: "toolbox-redis",
+    name: "reactive-redis",
     version: 1,
     data_types: [],
     commands: [
-        ["t.publishset", publishset, "write pubsub"],
-        ["t.subscribeget", subscribeget, "readonly pubsub"],
+        ["r.publishset", publishset, "write pubsub"],
+        ["r.subscribeget", subscribeget, "readonly pubsub"],
     ],
 }

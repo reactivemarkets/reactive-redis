@@ -1,5 +1,5 @@
 [package]
-name = "toolbox-redis"
+name = "reactive-redis"
 version = "0.1.0"
 authors = ["Mark McDowell <mark.mcdowell@reactivemarkets.com>"]
 edition = "2018"

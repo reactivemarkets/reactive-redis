@@ -1,18 +1,18 @@
-# Toolbox Redis
+# Reactive Redis
 
 Custom commands for Redis.
 
 ## Commands
 
-### T.PUBLISHSET \<channel> \<message>
+### R.PUBLISHSET \<channel> \<message>
 
 Posts a message to the given channel and stores it at the corresponding key.
 
 ## Building
 
 ```bash
-git clone https://github.com/reactivemarkets/toolbox-redis.get
-cd toolbox-redis
+git clone https://github.com/reactivemarkets/reactive-redis.get
+cd reactive-redis
 cargo build --release
 ```
 
@@ -21,13 +21,13 @@ cargo build --release
 ### Linux
 
 ```bash
-redis-server --loadmodule ./target/release/libtoolbox_redis.so
+redis-server --loadmodule ./target/release/libreactive_redis.so
 ```
 
 ### Mac
 
 ```bash
-redis-server --loadmodule ./target/release/libtoolbox_redis.dylib
+redis-server --loadmodule ./target/release/libreactive_redis.dylib
 ```
 
 ## Contributing
