@@ -1,13 +1,11 @@
 ---
-name: Release
+name: release
 on:
   push:
     tags:
       - v*
-
 jobs:
   build:
-    name: Upload Release Asset
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
