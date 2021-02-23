@@ -4,13 +4,17 @@ Custom commands for Redis.
 
 ## Commands
 
-### PUBLISHSET \<channel> \<message>
+### PUBLISHSET channel message
 
 Posts a message to the given channel and stores it at the corresponding key.
 
-### PUBLISHSETEX \<channel> \<seconds> \<message>
+### PUBLISHSETEX channel seconds message
 
 Posts a message to the given channel, stores it at the corresponding key and sets an expiry in seconds.
+
+### XMREVRANGE end start COUNT count key [key ...]
+
+This command is exactly like XREVRANGE but allows retrieving multiple streams at the same time.
 
 ## Building
 
