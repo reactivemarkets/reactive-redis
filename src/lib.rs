@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate redis_module;
 
-use redis_module::{Context, NextArg, RedisError, RedisResult};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue};
 use std::time::Duration;
 
 /// Posts a message to the given channel and stores it at the corresponding key
@@ -47,6 +47,37 @@ fn publishsetex(ctx: &Context, args: Vec<String>) -> RedisResult {
     Ok(result.into())
 }
 
+/// Posts a message to the given channel, stores it at the corresponding key and expires after seconds.
+///
+/// XMREVRANGE end start COUNT count key [key ...]
+fn xmrevrange(ctx: &Context, args: Vec<String>) -> RedisResult {
+    if args.len() < 6 {
+        return Err(RedisError::WrongArity);
+    }
+
+    let mut mutable_args = args.into_iter().skip(1);
+    let end = mutable_args.next_string()?;
+    let start = mutable_args.next_string()?;
+    let keyword = mutable_args.next_string()?;
+    let count = mutable_args.next_string()?;
+
+    let mut response: Vec<RedisValue> = Vec::new();
+
+    for key in mutable_args {
+        let result = ctx.call("xrevrange", &[&key, &end, &start, &keyword, &count]);
+        match result {
+            Ok(value) => {
+                response.push(value)
+            },
+            Err(_error) => {
+                response.push(RedisValue::Null)
+            }
+        }
+    }
+
+    Ok(response.into())
+}
+
 //////////////////////////////////////////////////////
 
 redis_module! {
@@ -56,6 +87,7 @@ redis_module! {
     commands: [
         ["publishset", publishset, "write deny-oom pubsub", 0, 0, 0],
         ["publishsetex", publishsetex, "write deny-oom pubsub", 0, 0, 0],
+        ["xmrevrange", xmrevrange, "readonly", 0, 0, 0],
     ],
 }
 
