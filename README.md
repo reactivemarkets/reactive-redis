@@ -4,9 +4,13 @@ Custom commands for Redis.
 
 ## Commands
 
-### R.PUBLISHSET \<channel> \<message>
+### PUBLISHSET \<channel> \<message>
 
 Posts a message to the given channel and stores it at the corresponding key.
+
+### PUBLISHSETEX \<channel> \<seconds> \<message>
+
+Posts a message to the given channel, stores it at the corresponding key and sets an expiry in seconds.
 
 ## Building
 

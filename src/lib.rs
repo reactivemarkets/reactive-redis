@@ -2,10 +2,11 @@
 extern crate redis_module;
 
 use redis_module::{Context, NextArg, RedisError, RedisResult};
+use std::time::Duration;
 
 /// Posts a message to the given channel and stores it at the corresponding key
 ///
-/// T.PUBLISHSET <channel> <message>
+/// PUBLISHSET <channel> <message>
 fn publishset(ctx: &Context, args: Vec<String>) -> RedisResult {
     if args.len() > 3 {
         return Err(RedisError::WrongArity);
@@ -16,43 +17,70 @@ fn publishset(ctx: &Context, args: Vec<String>) -> RedisResult {
     let message = mutable_args.next_string()?;
 
     let redis_key = ctx.open_key_writable(&channel);
-
     redis_key.write(&message)?;
 
-    let result = ctx.call("publish", &[&channel, &message]).unwrap().into();
+    let result = ctx.call("publish", &[&channel, &message])?;
 
-    Ok(result)
+    Ok(result.into())
 }
 
-/// Listen for messages published to the given channels
+/// Posts a message to the given channel, stores it at the corresponding key and expires after seconds.
 ///
-/// T.SUBSCRIBEGET <channel> [channel...]
-fn subscribeget(ctx: &Context, args: Vec<String>) -> RedisResult {
-    let channels: Vec<&str> = args.iter().skip(1).map(|s| s.as_str()).collect();
-
-    ctx.call("subscribe", channels.as_slice())?;
-
-    let mut response = Vec::new();
-
-    for channel in &args {
-        let redis_key = ctx.open_key(channel);
-        match redis_key.read().unwrap() {
-            None => {}
-            Some(value) => {
-                response.push(value);
-            }
-        }
+/// PUBLISHSETEX <channel> <seconds> <message>
+fn publishsetex(ctx: &Context, args: Vec<String>) -> RedisResult {
+    if args.len() > 4 {
+        return Err(RedisError::WrongArity);
     }
 
-    Ok(response.into())
+    let mut mutable_args = args.into_iter().skip(1);
+    let channel = mutable_args.next_string()?;
+    let seconds = mutable_args.next_u64()?;
+    let message = mutable_args.next_string()?;
+
+    let redis_key = ctx.open_key_writable(&channel);
+
+    redis_key.write(&message)?;
+    redis_key.set_expire(Duration::from_secs(seconds))?;
+
+    let result = ctx.call("publish", &[&channel, &message])?;
+
+    Ok(result.into())
 }
+
+//////////////////////////////////////////////////////
 
 redis_module! {
     name: "reactive-redis",
     version: 1,
     data_types: [],
     commands: [
-        ["r.publishset", publishset, "write pubsub"],
-        ["r.subscribeget", subscribeget, "readonly pubsub"],
+        ["publishset", publishset, "write deny-oom pubsub", 0, 0, 0],
+        ["publishsetex", publishsetex, "write deny-oom pubsub", 0, 0, 0],
     ],
+}
+
+//////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn run_publishset(args: &[&str]) -> RedisResult {
+        publishset(
+            &Context::dummy(),
+            args.iter().map(|v| String::from(*v)).collect(),
+        )
+    }
+
+    #[test]
+    fn publishset_errors_on_wrong_args() {
+        let result = run_publishset(&vec!["PUBLISHSET", "channel", "1", "message"]);
+
+        match result {
+            Err(RedisError::WrongArity) => {
+                assert!(true)
+            },
+            _ => assert!(false, "Bad result: {:?}", result),
+        }
+    }
 }
