@@ -1,6 +1,6 @@
 # Reactive Redis
 
-Custom commands for Redis.
+Custom commands for Redis. We don't prefix these commands with anything as they currently don't clash.
 
 ## Commands
 
@@ -21,7 +21,13 @@ This command is exactly like XREVRANGE but allows retrieving multiple streams at
 ```bash
 git clone https://github.com/reactivemarkets/reactive-redis.get
 cd reactive-redis
-cargo build --release
+cargo build
+```
+
+## Tests
+
+```
+cargo test
 ```
 
 ## Run
@@ -29,13 +35,13 @@ cargo build --release
 ### Linux
 
 ```bash
-redis-server --loadmodule ./target/release/libreactive_redis.so
+redis-server --loadmodule ./target/debug/libreactive_redis.so
 ```
 
 ### Mac
 
 ```bash
-redis-server --loadmodule ./target/release/libreactive_redis.dylib
+redis-server --loadmodule ./target/debug/libreactive_redis.dylib
 ```
 
 ## Contributing
