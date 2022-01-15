@@ -3,9 +3,9 @@ extern crate redis_module;
 
 use redis_module::{Context, RedisResult, RedisString};
 mod commands;
-use commands::{pubsub, streams};
+use commands::{pubsub, sorted_sets, streams};
 
-/// Posts a message to the given channel and stores it at the corresponding key
+/// Posts a message to the given channel and stores it at the corresponding key.
 ///
 /// PUBLISHSET <channel> <message>
 fn publishset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -19,11 +19,18 @@ fn publishsetex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     pubsub::publishsetex(ctx, args)
 }
 
-/// Posts a message to the given channel, stores it at the corresponding key and expires after seconds.
+/// This command is exactly like XREVRANGE but allows retrieving multiple streams at the same time.
 ///
 /// XMREVRANGE end start COUNT count key [key ...]
 fn xmrevrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     streams::xmrevrange(ctx, args)
+}
+
+/// This command is similar to ZUNION, but reduces the results set by a min and max score.
+/// 
+/// ZUNIONBYSCORE numkeys key [key ...] min max [LIMIT] offset count
+fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    sorted_sets::zunionbyscore(ctx, args)
 }
 
 //////////////////////////////////////////////////////
@@ -35,6 +42,7 @@ redis_module! {
     commands: [
         ["publishset", publishset, "write deny-oom pubsub", 0, 0, 0],
         ["publishsetex", publishsetex, "write deny-oom pubsub", 0, 0, 0],
+        ["zunionbyscore", zunionbyscore, "readonly", 0, 0, 0],
         ["xmrevrange", xmrevrange, "readonly", 0, 0, 0],
     ],
 }

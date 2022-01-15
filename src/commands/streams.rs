@@ -1,5 +1,6 @@
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 
+/// XMREVRANGE end start COUNT count key [key ...]
 pub fn xmrevrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 6 {
         return Err(RedisError::WrongArity);

@@ -3,9 +3,17 @@ name = "reactive-redis"
 version = "0.3.0"
 authors = ["Mark McDowell <mark.mcdowell@reactivemarkets.com>"]
 edition = "2018"
+keywords = ["redis", "module"]
+categories = ["database-implementations"]
+repository = "https://github.com/reactivemarkets/reactive-redis"
+readme = "README.md"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-redis-module = { version="0.26.0", features = ["experimental-api", "test"]}
+itertools = { version="0.10.3" }
+redis-module = { version="0.26.0", features = ["experimental-api"]}
+
+[features]
+test = ["redis-module/test"]
