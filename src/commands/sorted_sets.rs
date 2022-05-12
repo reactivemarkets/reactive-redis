@@ -19,10 +19,6 @@ pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         keys.push(key);
     }
 
-    keys.push("AGGREGATE");
-    keys.push("MAX");
-    keys.push("WITHSCORES");
-
     let min = mutable_args.next_f64()?;
     let max = mutable_args.next_f64()?;
 
@@ -34,35 +30,47 @@ pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let offset = mutable_args.next_u64()?;
     let count = mutable_args.next_u64()?;
 
-    let all_keys = ctx.call("zunion", &keys)?;
-    match all_keys {
-        RedisValue::Array (results) => {
-            let response = results
-                .into_iter()
-                .tuples::<(_, _)>()
-                .filter(|tuple| {
-                    match &tuple.1 {
-                        RedisValue::SimpleString(score) => {
-                            if score == "-inf" || score == "+inf" {
-                                return true
-                            }
-        
-                            let score_f: f64 = score.parse().unwrap_or(0.0);
+    let response = keys
+        .into_iter()
+        .map(|key| {
+            let min_str = min.to_string();
+            let max_str = max.to_string();
 
-                            return score_f > min && score_f < max;
-                        }
-                        _ => false
-                    }
-                })
-                .map(|tuple| tuple.0)
-                .skip(offset as usize)
-                .take(count as usize)
-                .collect::<Vec<_>>();
-            
-            return Ok(response.into());
-        },
-        _ => {
-            return Err(RedisError::WrongType);
-        }
-    }
+            let results = ctx.call("zrange", &[&key, &min_str, &max_str, "BYSCORE", "WITHSCORES"]).ok()?;
+            match results {
+                RedisValue::Array (values) => {
+                    let keys = values
+                        .into_iter()
+                        .tuples::<(_, _)>()
+                        .collect::<Vec<(_, _)>>();
+
+                    return Some(keys);
+                     
+                },
+                _ => {
+                    return None;
+                }
+            }
+        })
+        .flatten()
+        .flatten()
+        .map(|tuple| {
+            match &tuple.1 {
+                RedisValue::SimpleString(score) => {
+                    let score_f: f64 = score.parse().unwrap_or(0.0);
+
+                    return (tuple.0, score_f);
+                }
+                _ => (tuple.0, 0.0)
+            }
+        })
+        .filter(|tuple| tuple.1 >= min && tuple.1 <= max)
+        .sorted_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+        .dedup()
+        .map(|tuple| tuple.0)
+        .skip(offset as usize)
+        .take(count as usize)
+        .collect::<Vec<_>>();
+    
+    return Ok(response.into());
 }
