@@ -19,10 +19,10 @@ pub fn xmrevrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         let result = ctx.call("xrevrange", &[&key, &end, &start, &keyword, &count]);
         match result {
             Ok(value) => {
-                response.push(value)
-            },
+                response.push(value);
+            }
             Err(_error) => {
-                response.push(RedisValue::Null)
+                response.push(RedisValue::Null);
             }
         }
     }
