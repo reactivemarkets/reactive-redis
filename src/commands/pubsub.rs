@@ -1,5 +1,34 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString};
 use std::time::Duration;
+
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+
+use super::redis_module_ext::call;
+
+pub fn mpublish(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    let number_of_args = args.len();
+    if number_of_args < 3 {
+        return Err(RedisError::WrongArity);
+    }
+
+    let mut mutable_args = args.into_iter().skip(1).rev();
+    let message = mutable_args.next_arg()?;
+
+    let mut response: Vec<RedisValue> = Vec::new();
+
+    for channel in mutable_args {
+        let result = call(ctx, "publish", &[&channel, &message]);
+        match result {
+            Ok(value) => {
+                response.push(value);
+            }
+            Err(_error) => {
+                response.push(RedisValue::Null);
+            }
+        }
+    }
+
+    Ok(response.into())
+}
 
 pub fn publishset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() != 3 {
@@ -8,15 +37,13 @@ pub fn publishset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
     let mut mutable_args = args.into_iter().skip(1);
     let channel = mutable_args.next_arg()?;
-    let message = mutable_args.next_string()?;
+    let message = mutable_args.next_arg()?;
 
     let redis_key = ctx.open_key_writable(&channel);
 
-    let result = redis_key.write(&message)?.into();
+    let result = redis_key.write(&message.to_string_lossy())?;
 
-    let str_channel = RedisString::to_string_lossy(&channel);
-
-    ctx.call("publish", &[&str_channel, &message])?;
+    call(ctx, "publish", &[&channel, &message])?;
 
     Ok(result)
 }
@@ -29,16 +56,14 @@ pub fn publishsetex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut mutable_args = args.into_iter().skip(1);
     let channel = mutable_args.next_arg()?;
     let seconds = mutable_args.next_u64()?;
-    let message = mutable_args.next_string()?;
+    let message = mutable_args.next_arg()?;
 
     let redis_key = ctx.open_key_writable(&channel);
 
-    let result = redis_key.write(&message)?.into();
+    let result = redis_key.write(&message.to_string_lossy())?;
     redis_key.set_expire(Duration::from_secs(seconds))?;
 
-    let str_channel = RedisString::to_string_lossy(&channel);
-
-    ctx.call("publish", &[&str_channel, &message])?;
+    call(ctx, "publish", &[&channel, &message])?;
 
     Ok(result)
 }
@@ -50,23 +75,17 @@ mod tests {
     use super::*;
 
     fn run_publishset(args: &[&str]) -> RedisResult {
-
         let ctx = Context::dummy();
 
-        publishset(
-            &ctx,
-            args.iter().map(|&v| ctx.create_string(v)).collect(),
-        )
+        publishset(&ctx, args.iter().map(|&v| ctx.create_string(v)).collect())
     }
 
     #[test]
     fn publishset_errors_on_wrong_args() {
-        let result = run_publishset(&vec!["PUBLISHSET", "channel", "1", "message"]);
+        let result = run_publishset(&["PUBLISHSET", "channel", "1", "message"]);
 
         match result {
-            Err(RedisError::WrongArity) => {
-                assert!(true)
-            },
+            Err(RedisError::WrongArity) => assert!(true),
             _ => assert!(false, "Bad result: {:?}", result),
         }
     }

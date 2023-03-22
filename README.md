@@ -4,6 +4,10 @@ Custom commands for Redis. We don't prefix these commands with anything as they 
 
 ## Commands
 
+### `MPUBLISH channel [channel ...] message`
+
+Posts a message to one or more channels.
+
 ### `PUBLISHSET channel message`
 
 Posts a message to the given channel and stores it at the corresponding key.

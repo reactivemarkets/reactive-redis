@@ -1,5 +1,5 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 use itertools::Itertools;
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 
 /// ZUNIONBYSCORE numkeys key [key ...] min max [LIMIT] offset count
 pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -26,43 +26,42 @@ pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if limit != "LIMIT" {
         return Err(RedisError::WrongArity);
     }
-    
+
     let offset = mutable_args.next_u64()?;
     let count = mutable_args.next_u64()?;
 
     let response = keys
         .into_iter()
-        .map(|key| {
+        .filter_map(|key| {
             let min_str = min.to_string();
             let max_str = max.to_string();
 
-            let results = ctx.call("zrange", &[&key, &min_str, &max_str, "BYSCORE", "WITHSCORES"]).ok()?;
+            let results = ctx
+                .call(
+                    "zrange",
+                    &[key, &min_str, &max_str, "BYSCORE", "WITHSCORES"],
+                )
+                .ok()?;
             match results {
-                RedisValue::Array (values) => {
+                RedisValue::Array(values) => {
                     let keys = values
                         .into_iter()
                         .tuples::<(_, _)>()
                         .collect::<Vec<(_, _)>>();
 
-                    return Some(keys);
-                     
-                },
-                _ => {
-                    return None;
+                    Some(keys)
                 }
+                _ => None,
             }
         })
         .flatten()
-        .flatten()
-        .map(|tuple| {
-            match &tuple.1 {
-                RedisValue::SimpleString(score) => {
-                    let score_f: f64 = score.parse().unwrap_or(0.0);
+        .map(|tuple| match &tuple.1 {
+            RedisValue::SimpleString(score) => {
+                let score_f: f64 = score.parse().unwrap_or(0.0);
 
-                    return (tuple.0, score_f);
-                }
-                _ => (tuple.0, 0.0)
+                (tuple.0, score_f)
             }
+            _ => (tuple.0, 0.0),
         })
         .filter(|tuple| tuple.1 >= min && tuple.1 <= max)
         .sorted_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
@@ -71,6 +70,6 @@ pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         .skip(offset as usize)
         .take(count as usize)
         .collect::<Vec<_>>();
-    
-    return Ok(response.into());
+
+    Ok(response.into())
 }
