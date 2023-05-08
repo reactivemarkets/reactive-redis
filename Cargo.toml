@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 itertools = { version="0.10.3" }
-redis-module = { version="1.0.1", features = ["experimental-api"]}
+redis-module = { version="2.0.3", features = ["experimental-api"]}
 
 [features]
 test = ["redis-module/test"]
