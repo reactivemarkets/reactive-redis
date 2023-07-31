@@ -12,7 +12,7 @@ readme = "README.md"
 crate-type = ["cdylib"]
 
 [dependencies]
-itertools = { version="0.10.3" }
+itertools = { version="0.11.0" }
 redis-module = { version="1.0.1", features = ["experimental-api"]}
 
 [features]
