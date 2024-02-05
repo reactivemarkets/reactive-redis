@@ -1,6 +1,6 @@
 [package]
 name = "reactive-redis"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Mark McDowell <mark.mcdowell@reactivemarkets.com>"]
 edition = "2021"
 keywords = ["redis", "module"]
@@ -12,8 +12,8 @@ readme = "README.md"
 crate-type = ["cdylib"]
 
 [dependencies]
-itertools = { version="0.10.3" }
-redis-module = { version="1.0.1", features = ["experimental-api"]}
+itertools = { version = "0.10.3" }
+redis-module = { version = "1.0.1", features = ["experimental-api"] }
 
 [features]
 test = ["redis-module/test"]
