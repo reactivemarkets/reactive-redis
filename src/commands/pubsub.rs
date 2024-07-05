@@ -13,7 +13,7 @@ pub fn mpublish(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut mutable_args = args.into_iter().skip(1).rev();
     let message = mutable_args.next_arg()?;
 
-    let mut response: Vec<RedisValue> = Vec::new();
+    let mut response: Vec<RedisValue> = Vec::with_capacity(mutable_args.len());
 
     for channel in mutable_args {
         let result = call(ctx, "publish", &[&channel, &message]);
