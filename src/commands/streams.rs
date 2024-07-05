@@ -12,7 +12,7 @@ pub fn xmrevrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let keyword = mutable_args.next_string()?;
     let count = mutable_args.next_string()?;
 
-    let mut response: Vec<RedisValue> = Vec::new();
+    let mut response: Vec<RedisValue> = Vec::with_capacity(mutable_args.len());
 
     for arg in mutable_args {
         let key = RedisString::to_string_lossy(&arg);
