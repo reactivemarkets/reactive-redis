@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
 
 use super::redis_module_ext::call;
 
@@ -36,15 +36,15 @@ pub fn publishset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
 
-    let mut mutable_args = args.into_iter().skip(1);
-    let channel = mutable_args.next_arg()?;
-    let message = mutable_args.next_arg()?;
+    let [_, channel, message] = &args[..] else {
+        return Err(RedisError::WrongArity);
+    };
 
-    let redis_key = ctx.open_key_writable(&channel);
+    let redis_key = ctx.open_key_writable(channel);
 
     let result = redis_key.write(&message.to_string_lossy())?;
 
-    call(ctx, "publish", &[&channel, &message])?;
+    call(ctx, "publish", &[channel, message])?;
 
     Ok(result)
 }
@@ -54,17 +54,20 @@ pub fn publishsetex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
 
-    let mut mutable_args = args.into_iter().skip(1);
-    let channel = mutable_args.next_arg()?;
-    let seconds = mutable_args.next_u64()?;
-    let message = mutable_args.next_arg()?;
+    let [_, channel, seconds, message] = &args[..] else {
+        return Err(RedisError::WrongArity);
+    };
 
-    let redis_key = ctx.open_key_writable(&channel);
+    let seconds = seconds
+        .parse_unsigned_integer()
+        .map_err(|_| RedisError::Str("Invalid seconds value"))?;
+
+    let redis_key = ctx.open_key_writable(channel);
 
     let result = redis_key.write(&message.to_string_lossy())?;
     redis_key.set_expire(Duration::from_secs(seconds))?;
 
-    call(ctx, "publish", &[&channel, &message])?;
+    call(ctx, "publish", &[channel, message])?;
 
     Ok(result)
 }

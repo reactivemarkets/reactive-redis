@@ -1,5 +1,7 @@
 use itertools::Itertools;
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
+
+use super::redis_module_ext::call;
 
 /// ZUNIONBYSCORE numkeys key [key ...] min max [LIMIT] offset count
 pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -7,41 +9,49 @@ pub fn zunionbyscore(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
 
-    let mut mutable_args = args.into_iter().skip(1);
-    let numkeys = mutable_args.next_i64()?;
-    let numkeys_string = numkeys.to_string();
+    let mut args_iter = args.iter().skip(1);
+    let numkeys_str = args_iter.next().ok_or(RedisError::WrongArity)?;
+    let numkeys = numkeys_str
+        .parse_integer()
+        .map_err(|_| RedisError::WrongArity)?;
 
-    let mut keys: Vec<&str> = Vec::new();
-    keys.push(&numkeys_string);
+    let keys = &args[2..(2 + numkeys as usize)];
+    let min_arg = &args[2 + numkeys as usize];
+    let max_arg = &args[3 + numkeys as usize];
+    let limit_arg = &args[4 + numkeys as usize];
+    let offset_arg = &args[5 + numkeys as usize];
+    let count_arg = &args[6 + numkeys as usize];
 
-    for _i in 0..numkeys {
-        let key = mutable_args.next_str()?;
-        keys.push(key);
+    if limit_arg.to_string_lossy() != "LIMIT" {
+        return Err(RedisError::WrongType);
     }
 
-    let min = mutable_args.next_f64()?;
-    let max = mutable_args.next_f64()?;
+    let min = min_arg.parse_float().map_err(|_| RedisError::WrongType)?;
+    let max = max_arg.parse_float().map_err(|_| RedisError::WrongType)?;
 
-    let limit = mutable_args.next_str()?;
-    if limit != "LIMIT" {
-        return Err(RedisError::WrongArity);
-    }
+    let offset = offset_arg
+        .parse_unsigned_integer()
+        .map_err(|_| RedisError::WrongType)?;
+    let count = count_arg
+        .parse_unsigned_integer()
+        .map_err(|_| RedisError::WrongType)?;
 
-    let offset = mutable_args.next_u64()?;
-    let count = mutable_args.next_u64()?;
+    let min_str = min.to_string();
+    let max_str = max.to_string();
+    let byscore = ctx.create_string("BYSCORE");
+    let withscores = ctx.create_string("WITHSCORES");
+    let min_redis_str = ctx.create_string(&min_str);
+    let max_redis_str = ctx.create_string(&max_str);
 
     let response = keys
-        .into_iter()
+        .iter()
         .filter_map(|key| {
-            let min_str = min.to_string();
-            let max_str = max.to_string();
-
-            let results = ctx
-                .call(
-                    "zrange",
-                    &[key, &min_str, &max_str, "BYSCORE", "WITHSCORES"],
-                )
-                .ok()?;
+            let results = call(
+                ctx,
+                "zrange",
+                &[key, &min_redis_str, &max_redis_str, &byscore, &withscores],
+            )
+            .ok()?;
             match results {
                 RedisValue::Array(values) => {
                     let keys = values

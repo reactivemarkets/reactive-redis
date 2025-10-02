@@ -1,4 +1,6 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
+
+use super::redis_module_ext::call;
 
 /// XMREVRANGE end start COUNT count key [key ...]
 pub fn xmrevrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -6,17 +8,14 @@ pub fn xmrevrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
 
-    let mut mutable_args = args.into_iter().skip(1);
-    let end = mutable_args.next_string()?;
-    let start = mutable_args.next_string()?;
-    let keyword = mutable_args.next_string()?;
-    let count = mutable_args.next_string()?;
+    let [_, end, start, keyword, count, keys @ ..] = &args[..] else {
+        return Err(RedisError::WrongArity);
+    };
 
-    let mut response: Vec<RedisValue> = Vec::with_capacity(mutable_args.len());
+    let mut response: Vec<RedisValue> = Vec::with_capacity(keys.len());
 
-    for arg in mutable_args {
-        let key = RedisString::to_string_lossy(&arg);
-        let result = ctx.call("xrevrange", &[&key, &end, &start, &keyword, &count]);
+    for key in keys {
+        let result = call(ctx, "xrevrange", &[key, end, start, keyword, count]);
         match result {
             Ok(value) => {
                 response.push(value);
