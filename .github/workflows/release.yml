@@ -6,13 +6,12 @@ on:
       - v*
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/cargo@v1.0.3
-        with:
-          command: build
-          args: --release --all-features
+      - run: rustup update stable
+      - run: rustup default stable
+      - run: cargo build --release --all-features
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1.1.4

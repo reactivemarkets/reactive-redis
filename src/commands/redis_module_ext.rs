@@ -8,7 +8,7 @@ use redis_module::{
 };
 
 /// See https://redis.io/docs/reference/modules/modules-api-ref/#redismodule_call
-const FMT: *const c_char = b"!vA\0".as_ptr().cast::<c_char>();
+const FMT: *const c_char = c"!vA".as_ptr();
 
 fn parse_call_reply(reply: *mut RedisModuleCallReply) -> RedisResult {
     match call_reply_type(reply) {

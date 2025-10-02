@@ -34,7 +34,7 @@ cargo build
 
 ## Tests
 
-```
+```bash
 cargo test --features test
 ```
 

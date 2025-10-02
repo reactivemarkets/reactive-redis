@@ -3,7 +3,9 @@
 # already existing elements were commented out
 
 /target
-Cargo.lock
 
 # Redis
 dump.rdb
+
+# ignore mac files
+.DS_Store
