@@ -10,9 +10,9 @@ pub fn mpublish(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
 
-    let args_len = number_of_args - 1;
-    let message = &args[args_len];
-    let channels = &args[1..args_len];
+    let Some((message, channels)) = args[1..].split_last() else {
+        return Err(RedisError::WrongArity);
+    };
 
     let mut response: Vec<RedisValue> = Vec::with_capacity(channels.len());
 
