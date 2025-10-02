@@ -10,13 +10,14 @@ pub fn mpublish(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
 
-    let mut mutable_args = args.into_iter().skip(1).rev();
-    let message = mutable_args.next_arg()?;
+    let args_len = number_of_args - 1;
+    let message = &args[args_len];
+    let channels = &args[1..args_len];
 
-    let mut response: Vec<RedisValue> = Vec::with_capacity(mutable_args.len());
+    let mut response: Vec<RedisValue> = Vec::with_capacity(channels.len());
 
-    for channel in mutable_args {
-        let result = call(ctx, "publish", &[&channel, &message]);
+    for channel in channels {
+        let result = call(ctx, "publish", &[channel, message]);
         match result {
             Ok(value) => {
                 response.push(value);
@@ -80,9 +81,26 @@ mod tests {
         publishset(&ctx, args.iter().map(|&v| ctx.create_string(v)).collect())
     }
 
+    fn run_mpublish(args: &[&str]) -> RedisResult {
+        let ctx = Context::dummy();
+
+        mpublish(&ctx, args.iter().map(|&v| ctx.create_string(v)).collect())
+    }
+
     #[test]
     fn publishset_errors_on_wrong_args() {
         let result = run_publishset(&["PUBLISHSET", "channel", "1", "message"]);
+
+        match result {
+            Err(RedisError::WrongArity) => assert!(true),
+            _ => assert!(false, "Bad result: {:?}", result),
+        }
+    }
+
+    #[test]
+    fn mpublish_errors_on_wrong_args() {
+        // Too few arguments (need at least command + channel + message)
+        let result = run_mpublish(&["MPUBLISH", "channel"]);
 
         match result {
             Err(RedisError::WrongArity) => assert!(true),
